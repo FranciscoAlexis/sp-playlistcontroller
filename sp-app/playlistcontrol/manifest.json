@@ -1,0 +1,17 @@
+{
+	"BundleType": "Application",
+	"BundleIdentifier": "playlistcontrol",
+	"AppIcon": {
+		"36x18": "plctl.png"
+	},
+	"AppName": {
+		"en": "Playlist Control"
+	},
+	"SupportedLanguages": [
+		"en"
+	],
+	"RequiredPermissions" : [
+		"http://ajax.googleapis.com",
+		"http://wordpress.dev/"
+	]
+}

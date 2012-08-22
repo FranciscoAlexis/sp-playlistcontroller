@@ -1,0 +1,100 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+	<title>Playlist Control</title>
+	<meta name="description" content="">
+	<meta name="author" content="">
+
+	<meta name="viewport" content="width=device-width">
+	<link rel="stylesheet" href="css/bootstrap.min.css">
+	<style>
+	body {
+	  padding-top: 60px;
+	  padding-bottom: 40px;
+	}
+	</style>
+	<link rel="stylesheet" href="css/bootstrap-responsive.min.css">
+	<link rel="stylesheet" href="css/style.css">
+
+	<script src="js/libs/modernizr-2.5.3-respond-1.1.0.min.js"></script>
+</head>
+<body onload="sp = getSpotifyApi(1); playlistcontrol = sp.require('playlistcontrol'); playlistcontrol.init();">
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="#">Playlist Control</a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <!--li class="active"><a href="#">Home</a></li>
+              <li><a href="#about">About</a></li>
+              <li><a href="#contact">Contact</a></li-->
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+      <!-- Main hero unit for a primary marketing message or call to action -->
+      <div class="hero-unit2">
+        <h1>Playlist Control App</h1>
+        <p>Built to control spotify between friends.</p>
+        <!--p><a class="btn btn-primary btn-large">Learn more &raquo;</a></p-->
+      </div>
+
+      <!-- Example row of columns -->
+      <div class="row">
+        <div class="span4">
+          <blockquote>
+          <h2>Now playing</h2>
+           <small><span id="header">Current Song</span></small>
+        </blockquote>
+          <!--p><a class="btn" href="#">View details &raquo;</a></p-->
+        </div>
+        <div class="span4">
+          <h2>Configuration</h2>
+          <form class="well">
+            <p>
+              <label>Client locaction (w/o index.html):</label>
+              <input class="input-xlarge" type="text" name="clienturl" id="clienturl" value="http://localhost/playlistcontrol/"/>
+              <a class="btn btn-primary" onClick="javascript:playlistcontrol.updateClientLocation()">Set Client</a>
+              <small><span id="statusmsg"></span></small>
+            </p>
+            <p>
+              <label>[Optional] Drarg and Drop your shared list:</label>
+              <input class="input-xlarge" type="text" name="playlistlink" id="playlistlink" value=""/>
+              <a class="btn btn-primary" onClick="javascript:playlistcontrol.setPlayList()">Set Playlist</a>
+              <small><span id="statusmsg2"></span></small> 
+            </p>
+          </form>
+       </div>
+        <!--div class="span4">
+          <h2>Status</h2>
+          <p id="serverstatus">Not connected</p>
+          <p><a class="btn" href="#">View details &raquo;</a></p>
+        </div-->
+      </div>
+
+      <hr>
+
+      <footer>
+        <p> Francisco Rojas</p>
+      </footer>
+
+    </div> <!-- /container -->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="js/libs/jquery-1.7.2.min.js"><\/script>')</script>
+
+<script src="js/libs/bootstrap/bootstrap.min.js"></script>
+<script src="js/script.js"></script>
+</body>
+</html>
