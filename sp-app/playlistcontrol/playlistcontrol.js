@@ -1,11 +1,8 @@
-//CURRENTLY IT ONLY SUPPORTS TRACKS WITH THE "spotify:track:" FORMAT
-
 var sp = getSpotifyApi(1);
 var models = sp.require('sp://import/scripts/api/models');
 var player = models.player;
-var clientLocation = "http://localhost/playlistcontrol/";
-//var queue = new Playlist();
-var playlist;
+var clientLocation = 'http://myfancydomain.dev/playlistcontrol/';
+var playlistLink = '';
 
 exports.init = init;
 exports.updateClientLocation = updateClientLocation;
@@ -14,6 +11,9 @@ exports.setPlayList = setPlayList;
 function setPlayList()
 {
 	playlistLink = $('#playlistlink').val();
+	if(playlistLink == '' || playlistLink == ' ') return;
+
+	//we get the user and playlist ID
 	var match = playlistLink.match(/http\:\/\/open\.spotify\.com\/user\/([0-9]*)\/playlist\/([A-Za-z0-9_]*)/);
 	var uri = "spotify:user:"+match[1]+":playlist:"+match[2];
 	msg = ' (Debug) Playlist URI generated: ' + uri + '.';
@@ -21,6 +21,8 @@ function setPlayList()
 
 	//Now we take the playlist
 	playlist = sp.core.getPlaylist(uri);
+	if(playlist.length <= 0) return;
+	
 	var currentTime = new Date();
 	var hour = currentTime.getHours();
 	var mins = currentTime.getMinutes(); 
@@ -38,8 +40,8 @@ function setPlayList()
 	{
 		var track = playlist.getTrack(i);
 		var match = track.uri.split("spotify:track:");
-		if(match == track.uri || match[1] == null) // this is where we filter the spotify:local: songs
-			continue;
+		// this is where we filter the spotify:local: songs
+		if(match == track.uri || match[1] == null) continue;
 		playlistJson += '{';
 		playlistJson += '"name" : "' + track.name + '",';
 		playlistJson += '"album" :"' + track.album.name + '",';
@@ -58,26 +60,23 @@ function setPlayList()
         if(i != playlist.length - 1)
         	playlistJson += ",";
     }
-    playlistJson += ']';
-    playlistJson += '}';
+    playlistJson += ']}';
     console.log(playlistJson);//just to see wtf i'm sending
     
     //we're set to send the info to our client
     var url = clientLocation+"php/playlist.php";
     var jsondata = $.parseJSON(playlistJson);
-    //$.post(url, playlistJson);//doesn't work
     $.ajax({
         cache: false,
         type: 'POST',              
         url: url,
         dataType: 'json',
         data: jsondata,
-        success: function () { console.log("playlist log success"); },
+        success: function () { console.log("Playlist update success"); },
         error: function (response) {
             console.log("error: " + response.responseText);
         }
     });
-    //do we need to keep doing this all the time?, i mean, is the list volatile?... maybe a TODO here.
 }
 
 function updateClientLocation()
@@ -101,6 +100,11 @@ function init()
 	});
 
 	setInterval(function(){
+			//keep me updated about the playlist
+			setPlayList();
+	}, 3000);
+
+	setInterval(function(){
 		//initially there is only the playerfunction action 
 		//but in the future there could be another actions
 		$url = clientLocation + 'php/controller.php?action=read'
@@ -112,9 +116,22 @@ function init()
     				player.previous(true);
     			if(key == "playerFunction" && val == "playpause")
     				player.playing = !(player.playing);
+    			//Volume varies between 0.0 and 1.0.
+				//I think for now spotify doesn't let you change the volume from an app
+				//unless you start the playback from that app...
+				//but that's a lie, it just doesn't work for the moment
+    			if( (key == "playerFunction") && (val == "volumeup" || val == "volumedown"))
+    			{
+
+    				player.volume += ( val == "volumeup" ? 0.25 : -0.25);
+    				if(player.volume < 0.0)
+    					 player.volume = 0.0;
+    				if(player.volume > 1.0)
+    					 player.volume = 1.0;
+    			}
 			});
 		});
-	}, 3000);
+	}, 1500);
 }
 
 function updatePageWithTrackDetails() 

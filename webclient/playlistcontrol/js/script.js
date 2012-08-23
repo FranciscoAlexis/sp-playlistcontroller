@@ -5,14 +5,7 @@ var currentTimeStamp = '';
 
 $(document).ready(function() {
    
-   $url = 'json/nowplaying.json'
-    $.getJSON($url, function(data) {
-		$.each(data, function(key, val) {
-			$('#nowplaying').text(val);
-		});
-	});
-
-    //Lets keep doing this
+   //Update current song playing
    setInterval(function(){
 		$url = 'json/nowplaying.json'
 	    $.getJSON($url, function(data) {
@@ -25,7 +18,8 @@ $(document).ready(function() {
    //And this too
    setInterval(function(){
 		$url = 'json/playlist.json';
-		var tbody = $('#playlistbody');
+		//var tbody = $('#playlistbody');
+		var tbody = $('<tbody id="playlistbody"></tbody>');
 		var tr,html;
 	    $.getJSON($url, function(data) {
 			$.each(data, function(key, val) {
@@ -36,34 +30,31 @@ $(document).ready(function() {
 				}
 				else if(key == 'timestamp')
 				{
-					console.log('timestamp');
-					if(currentTimeStamp == val)
-					{
-						console.log('ct :'+currentTimeStamp);
-						console.log('val :'+currentTimeStamp);
+					//console.log('timestamp');
+					//This code was intended to stop updating the playlist every moment
+					//If you do this it works but it stops updating changes on the playlist
+					//made on the fly
+					/*if(currentTimeStamp == val)
 						return;
-					}
 					else
-					{
-						console.log('ct2 :'+currentTimeStamp);
-						console.log('val2 :'+currentTimeStamp);
-						currentTimeStamp = val;
-					}
+						currentTimeStamp = val;*/
 				}
 				else //tracks
 				{
-					//TODO FIX THIS SHIT
-					tbody.empty();
 					$.each(val,function(key2,val2){
 						tr = $('<tr>');
 						$.each(val2,function(key3,val3){
 							html = $('<td>'+val3+'</td>');
 							if(key3 == 'urihash')
-								html = $('<td><a class="btn" href="#">Enqueue</a></td>');
+							{
+								val3 = "'"+val3+"'";
+								html = $('<td><a class="btn" onClick="javascript:enqueueTrack('+val3+')">Enqueue</a></td>');
+							}
 							html.appendTo(tr);
 						});
 						tr.appendTo(tbody);
 					});
+					tbody.replaceAll($('#playlistbody'));
 				}
 			});
 		});
@@ -100,6 +91,34 @@ function pushAction(action)
 		  	controlMessageUpdate('Play/Pause');
 		});
 	}
+	if(action == 'volumeup')
+	{
+		$.ajax({
+		  type: "GET",
+		  url: "php/controller.php?action=write&param=playerFunction&value=volumeup",
+		}).done(function( msg ) {
+		  	controlMessageUpdate('Next track');
+		});
+	}
+	if(action == 'volumedown')
+	{
+		$.ajax({
+		  type: "GET",
+		  url: "php/controller.php?action=write&param=playerFunction&value=volumeup",
+		}).done(function( msg ) {
+		  	controlMessageUpdate('Next track');
+		});
+	}
+}
+
+function enqueueTrack(uri)
+{
+	$.ajax({
+		  type: "GET",
+		  url: "php/enqueue.php?uri="+uri,
+		}).done(function( msg ) {
+		  	controlMessageUpdate('Enqueue');
+		});
 }
 
 function controlMessageUpdate(msg)
