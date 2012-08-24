@@ -61,7 +61,7 @@ function setPlayList()
         	playlistJson += ",";
     }
     playlistJson += ']}';
-    console.log(playlistJson);//just to see wtf i'm sending
+    //console.log(playlistJson);//just to see wtf i'm sending
     
     //we're set to send the info to our client
     var url = clientLocation+"php/playlist.php";
@@ -99,10 +99,15 @@ function init()
 		}
 	});
 
+	//keep me updated about the playlist
 	setInterval(function(){
-			//keep me updated about the playlist
 			setPlayList();
 	}, 3000);
+
+	//get the track enqueued
+	setInterval(function(){
+			checkEnqueue();
+	}, 1500);
 
 	setInterval(function(){
 		//initially there is only the playerfunction action 
@@ -132,6 +137,35 @@ function init()
 			});
 		});
 	}, 1500);
+}
+
+function checkEnqueue()
+{
+	$url = clientLocation + 'json/enqueue.json';
+	$.getJSON($url, function(data) {
+			$.each(data, function(key, val) {
+    			//val is the track ID
+    			if(val == "0")
+    				return;
+    			else
+    			{
+    				console.log('Track uri: spotify:track:'+ val);
+    				var t = models.Track.fromURI("spotify:track:"+val, function(track) {
+    					console.log('going to play track '+ track.name)
+					    player.play(track);
+					});
+    				
+    				//erase from enqueue.json
+    				var ajaxurl = clientLocation + 'php/enqueue.php?uri=0';
+					$.ajax({
+						  type: "GET",
+						  url: ajaxurl,
+						}).done(function( msg ) {
+						  //is there anything to do?
+						});
+    			}
+			});
+		});
 }
 
 function updatePageWithTrackDetails() 

@@ -48,7 +48,7 @@ $(document).ready(function() {
 							if(key3 == 'urihash')
 							{
 								val3 = "'"+val3+"'";
-								html = $('<td><a class="btn" onClick="javascript:enqueueTrack('+val3+')">Enqueue</a></td>');
+								html = $('<td><a class="btn" onClick="javascript:enqueueTrack('+val3+')">Play now!</a></td>');
 							}
 							html.appendTo(tr);
 						});
