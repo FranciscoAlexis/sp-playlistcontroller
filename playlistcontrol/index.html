@@ -20,6 +20,7 @@
 	<link rel="stylesheet" href="css/style.css">
 
 	<script src="js/libs/modernizr-2.5.3-respond-1.1.0.min.js"></script>
+  <script src="js/date.js"></script>
 </head>
 <body onload="sp = getSpotifyApi(1); playlistcontrol = sp.require('playlistcontrol'); playlistcontrol.init();">
     <div class="container">
@@ -48,7 +49,7 @@
             </p>
             <p>
               <a class="btn btn-success" onClick="javascript:playlistcontrol.playPrevSong()">Prev</a>
-              <a class="btn btn-primary" onClick="javascript:playlistcontrol.playNextSong()">Start!</a>
+              <a class="btn btn-primary" onClick="javascript:playlistcontrol.startPlay()">Start!</a>
               <a class="btn btn-success" onClick="javascript:playlistcontrol.playNextSong()">Next</a>
               <small><span id="statusmsg"></span></small>
             </p>

@@ -5,12 +5,17 @@ var appPlaylist;
 var appPlaylistName = '';
 var appEnqueue;
 var enqueueCurrentIndex = 0;
+var lastTrackUri = '';
+//Hints for posible cases:
+//HINT when track is local and not available track.name is null
+//HINT the player stops when the track can't be played
+//HINT track.data.availableForPlayback (kinda dismiss the previous hint right?)
 
 exports.init = init;
 exports.setPlayList = setPlayList;
 exports.playNextSong = playNextSong;
 exports.playPrevSong = playPrevSong;
-exports.generateShuffle = generateShuffle;
+exports.startPlay = startPlay;
 
 function init() 
 {
@@ -18,64 +23,57 @@ function init()
 
 	player.observe(models.EVENT.CHANGE, function (e) 
 	{
-		if(appEnqueue != null && appEnqueue != undefined && appEnqueue != [])
+		updatePageWithTrackDetails();
+		if(player.track.data.isAd)
 		{
-			var trackUri = appEnqueue[enqueueCurrentIndex];
-			var t = models.Track.fromURI(trackUri, function(track) {
-				//This would happen if, for example, an ad takes over the player
-				if(player.track.name != track.name)
-				{
-					console.log('Going to play track '+ track.name)
-				    player.play(track);
-				}
-			});
+			//console.log('Ad on ' + (new Date()).format('mmm dd yy hh:nn:ss a/p'));
+			playNextSong(true);
 		}
-		
-		//The song has ended if the position of the player object is the length of the playing track, or if the playing track is null.
-		if(player.position == player.track.duration )
-			playNextSong();
-		else if (e.data.curtrack == true) 
-			updatePageWithTrackDetails();
 	});
+
+	setInterval(function(){
+		if(player.position > player.track.duration - 1500 && !player.track.data.isAd)
+			playNextSong(false);
+	},500);
 }
 
 function setPlayList()
 {
+	appPlaylist = null;
 	var playlistLink = '';
 	var playlistLink = $('#playlistlink').val();
-	if(playlistLink == '' || playlistLink == ' ') return false;
+	if(playlistLink == '' || playlistLink == ' ') {console.log('Playlist Link missing'); return false;}
 
 	//What i do here is to generate a spotify uri from a link, but it seems that getPlaylist accepts links too...i'll leave it like this anywhay.
 	var match = playlistLink.match(/http\:\/\/open\.spotify\.com\/user\/([0-9]*)\/playlist\/([A-Za-z0-9_]*)/);
+	if(match.length < 2){console.log('Playlist Link invalid'); return false;}
+	
 	var uri = "spotify:user:"+match[1]+":playlist:"+match[2];
 
-	//we create our own list from spotify.
 	appPlaylist = [];
-	//Now we take the playlist from spotify and fill our appPlaylist with its data
-	var spotifyPlaylist = models.Playlist.fromURI(uri, function(playlist) {
-			appPlaylistName = playlist.name;
-	        for(i=0;i<playlist.tracks.length;i++)
-	        {
-	        	var artists = '';
-	        	if(playlist.tracks[i].artists.length == 1)
-	        		artists = playlist.tracks[i].artists[0].name;	
-	            else
-	            {
-					for(j=0;j < playlist.tracks[i].artists.length;j++)
-					{
-						if(j < (playlist.tracks[i].artists.length - 1) )
-							artists += playlist.tracks[i].artists[j].name + ', ';
-						else
-							artists += playlist.tracks[i].artists[j].name;
-					}
-				}
-				if(appPlaylist[artists] == null || appPlaylist[artists] == undefined )
-					appPlaylist[artists] = [];
-				appPlaylist[artists].push(playlist.tracks[i].uri);
-	        }
-	    });
-	if(!spotifyPlaylist){console.log("appPlaylist null or undefined");return false;}
-
+	
+	models.Playlist.fromURI(uri, function(playlist) {
+		
+		appPlaylistName = playlist.name;
+        for(i=0;i<playlist.tracks.length;i++)
+        {
+        	var artists = '';
+        	if(playlist.tracks[i].artists.length == 1)
+        		artists = playlist.tracks[i].artists[0].name;	
+            else
+            {
+				for(j=0;j < playlist.tracks[i].artists.length-1;j++)
+					artists += playlist.tracks[i].artists[j].name + ', ';
+				artists += playlist.tracks[i].artists[playlist.tracks[i].artists.length -1].name;
+			}
+			if(appPlaylist[artists] == null || appPlaylist[artists] == undefined )
+				appPlaylist[artists] = [];
+			appPlaylist[artists].push(playlist.tracks[i].uri);
+        }
+    });
+    /*	Debug shit
+    for (var key in appPlaylist) 
+		console.log(key);*/
 	return true;
 }
 
@@ -86,22 +84,22 @@ function setPlayList()
 function getRandomIndexFromSize(size)
 {
 	//Remember if we want a number between a and b -> number = a + Math.random()*(b-a)
-	//Now i duplicate the number to get a better distribution
+	//Now i duplicate the max number (b) to get a better distribution
 	var index = Math.floor(Math.random()*size*2);
 	index = (index > size - 1) ? index - size : index; 
 	return index;
 }
 
-function getRandomArtists()
+function getRandomArtists(index)
 {
-	var index = getRandomIndexFromSize(Object.keys(appPlaylist).length);
-	var count = 0, artists = '';
+	var count = 0;
 	for (var key in appPlaylist) 
 	{
-		if(count == index){artists = key;break;}
+		if(count == index)
+			return key;
 	    count++;
     }
-    return artists;
+ 	return '';
 }
 
 function generateShuffle()
@@ -110,37 +108,36 @@ function generateShuffle()
 
 	appEnqueue = [];
 
-	var lastArtist = '';
+	var lastIndex = -1;
 
 	while(Object.keys(appPlaylist).length > 0)
 	{
-		//First we get the artists
-		var artists = getRandomArtists();
+		var index = getRandomIndexFromSize(Object.keys(appPlaylist).length);
+		if(index == lastIndex && Object.keys(appPlaylist).length > 1 )
+			continue;
+
+		lastIndex = index;
+
+		var artists = getRandomArtists(index);
 		if(artists == ''){console.log('Error getting artists');return false;}	
 
-		if(artists == lastArtist && Object.keys(appPlaylist).length > 1) continue;
+		if(appPlaylist[artists] == null || appPlaylist[artists] == undefined ){console.log('Error with the artists:' + artists);return false;}
 
-		lastArtist = artists;
-
-		//Now we get the songs array
-		var songs = appPlaylist[artists];
-		if(songs == null || songs == undefined ){console.log('Error with the artists:' + artists);return false;}
-
-		var songIndex = getRandomIndexFromSize(songs.length);
-		var trackUri = songs[songIndex];
+		var songIndex = getRandomIndexFromSize(appPlaylist[artists].length);
+		var trackUri = appPlaylist[artists][songIndex];
 
 		appEnqueue.push(trackUri);
 
-		songs.splice(songIndex,1);
+		appPlaylist[artists].splice(songIndex,1);
 
-		if(songs == [] || songs.length < 1)
+		if(appPlaylist[artists] == [] || appPlaylist[artists].length < 1)
 			delete appPlaylist[artists];
-		else
-			appPlaylist[artists] = songs;
-	}	
+	}
+	/*	Debug Shit
+	console.log(appEnqueue);*/
 }
 
-function playNextSong()
+function startPlay()
 {
 	if(appPlaylist == null || appPlaylist == undefined){console.log("Error, set the playlist first");return false;}
 
@@ -153,12 +150,47 @@ function playNextSong()
 		setPlayList();
 		generateShuffle();
 	}
+	
+	models.Track.fromURI(appEnqueue[enqueueCurrentIndex], function(track) {
+		if(lastTrackUri == track.uri)
+			return;
+		lastTrackUri = track.uri;
+		console.log('Going to play track '+ track.name + ' on ' + (new Date()).format('mmm dd yy hh:nn:ss a/p'));
+		if(track.name == null || !track.data.availableForPlayback)
+		{
+			playNextSong(false);
+			return;
+		}
+	    player.play(track);
+	});
+}
 
-	var trackUri = appEnqueue[enqueueCurrentIndex];
-	enqueueCurrentIndex++;
-		
-	var t = models.Track.fromURI(trackUri, function(track) {
-		console.log('Going to play track '+ track.name)
+
+function playNextSong(fromAd)
+{
+	if(appPlaylist == null || appPlaylist == undefined){console.log("Error, set the playlist first");return false;}
+
+	if(appEnqueue == [] || appEnqueue == undefined || appEnqueue == null )
+		generateShuffle();
+	if(!fromAd)
+		enqueueCurrentIndex++;
+	if(enqueueCurrentIndex > appEnqueue.length - 1)
+	{
+		enqueueCurrentIndex = 0;
+		setPlayList();
+		generateShuffle();
+	}
+	
+	models.Track.fromURI(appEnqueue[enqueueCurrentIndex], function(track) {
+		if(lastTrackUri == track.uri)
+			return;
+		lastTrackUri = track.uri;
+		console.log('Going to play track '+ track.name + ' on ' + (new Date()).format('mmm dd yy hh:nn:ss a/p'));
+		if(track.name == null || !track.data.availableForPlayback)
+		{
+			playNextSong(false);
+			return;
+		}
 	    player.play(track);
 	});
 }
@@ -170,6 +202,8 @@ function playPrevSong()
 	if(appEnqueue == [] || appEnqueue == undefined || appEnqueue == null )
 		generateShuffle();
 
+	enqueueCurrentIndex--;
+
 	if(enqueueCurrentIndex < 0)
 	{
 		enqueueCurrentIndex = 0;
@@ -177,11 +211,16 @@ function playPrevSong()
 		generateShuffle();
 	}
 
-	var trackUri = appEnqueue[enqueueCurrentIndex];
-	enqueueCurrentIndex--;
-		
-	var t = models.Track.fromURI(trackUri, function(track) {
-		console.log('Going to play track '+ track.name);
+	models.Track.fromURI(appEnqueue[enqueueCurrentIndex], function(track) {
+		if(lastTrackUri == track.uri)
+			return;
+		lastTrackUri = track.uri;
+		console.log('Going to play track '+ track.name + ' on ' + (new Date()).format('mmm dd yy hh:nn:ss a/p'));
+		if(track.name == null || !track.data.availableForPlayback)
+		{
+			playPrevSong();
+			return;
+		}
 	    player.play(track);
 	});
 }
