@@ -1,3 +1,5 @@
+This doesn't work anymore, spotify doesn't support apps for ages now.
+
 sp-playlistcontroller
 =====================
 
